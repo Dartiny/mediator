@@ -1,0 +1,11 @@
+# Pub
+packages
+pubspec.lock
+
+# Generated files
+/coverage.json
+.buildlog
+.pub/
+/build/
+/docs/
+/dartdoc-viewer/
