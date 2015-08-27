@@ -1,5 +1,5 @@
 name: mediator
-version: 0.1.0
+version: 0.1.0+2
 author: Roman Shamritskiy <roman@litgroup.ru>
 description: Component implements the Mediator pattern in a simple and effective way to make your projects extensible.
 homepage: https://github.com/Dartiny/mediator

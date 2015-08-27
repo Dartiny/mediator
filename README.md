@@ -3,7 +3,7 @@ Mediator
 
 Component implements the Mediator pattern in a simple and effective way to make your projects extensible.
 
-\* *Inspired by [Symfony Event Dispatcher][1]*
+_(Inspired by [Symfony Event Dispatcher][1])_
 
 [![Pub version](https://img.shields.io/pub/v/mediator.svg)](https://pub.dartlang.org/packages/mediator)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/Dartiny/mediator/blob/master/LICENSE)
@@ -15,7 +15,7 @@ import 'package:mediator/mediator.dart';
 main() async {
   var dispatcher = new EventDispatcher();
   
-  dispatcher.addListener('event-name', (String eventName, Event event) {
+  dispatcher.addListener('event-name', (String eventName, Event event) async {
   	// ...
   });
   
