@@ -18,16 +18,14 @@ abstract class EventDispatcher {
   /// Dispatches an event to all registered listeners.
   ///
   /// [Future] will complete with event when all listeners will be invoked.
-  /// If [event] not given then an instance of [Event] will be returned when
-  /// future will complete.
   ///
   /// You can check if the event propagation was stopped.
   ///
-  ///     var event = await dispatcher.dispatch('some-event');
+  ///     var event = await dispatcher.dispatch(new SomeEvent());
   ///     if (event.isPropagationStopped) {
   ///       // ...
   ///     }
-  Future<Event> dispatch(String eventName, [Event event]);
+  Future<Event> dispatch(Event event);
 
   /// Adds an event listener that listens on the specified events.
   ///
@@ -35,65 +33,61 @@ abstract class EventDispatcher {
   /// be triggered in the chain (defaults to 0).
   ///
   /// The same listener can be added several times (even with the same priority).
-  void addListener(String eventName, EventListener listener, {int priority: 0});
+  void addListener(Type eventType, EventListener listener, {int priority: 0});
 
   /// Removes an event listener from the specified events.
   ///
   /// All copies of the listener will be removed if the listener was registered
   /// several times for this event name.
-  void removeListener(String eventName, EventListener listener);
+  void removeListener(Type eventType, EventListener listener);
 
   /// Checks whether an event has any registered listeners.
-  bool hasListeners(String eventName);
+  bool hasListeners(Type eventType);
 
   /// Returns the listeners of a specific event or all listeners sorted by
   /// descending priority.
-  List<EventListener> getListeners(String eventName);
+  List<EventListener> getListeners(Type eventType);
 }
 
 class EventDispatcherImpl implements EventDispatcher {
-  final Map<String, Map<int, List<EventListener>>> _listeners;
-  final Map<String, List<EventListener>> _sorted;
+  final Map<Type, Map<int, List<EventListener>>> _listeners;
+  final Map<Type, List<EventListener>> _sorted;
 
   EventDispatcherImpl()
-      : _listeners = new Map<String, Map<int, List<EventListener>>>(),
-        _sorted = new Map<String, List<EventListener>>();
+      : _listeners = new Map<Type, Map<int, List<EventListener>>>(),
+        _sorted = new Map<Type, List<EventListener>>();
 
-  Future<Event> dispatch(String eventName, [Event event]) async {
-    if (event == null) {
-      event = new Event();
-    }
-
-    for (var listener in getListeners(eventName)) {
+  Future<Event> dispatch(Event event) async {
+    for (var listener in getListeners(event.runtimeType)) {
       if (event._propagationStopped) break;
-      await listener(eventName, event);
+      await listener(event);
     }
 
     return event;
   }
 
-  void addListener(String eventName, EventListener listener, {int priority: 0}) {
-    if (!_listeners.containsKey(eventName)) {
-      _listeners[eventName] =
+  void addListener(Type eventType, EventListener listener, {int priority: 0}) {
+    if (!_listeners.containsKey(eventType)) {
+      _listeners[eventType] =
           new SplayTreeMap<int, List<EventListener>>((int a, int b) => b.compareTo(a));
     }
 
-    if (!_listeners[eventName].containsKey(priority)) {
-      _listeners[eventName][priority] = new List<EventListener>();
+    if (!_listeners[eventType].containsKey(priority)) {
+      _listeners[eventType][priority] = new List<EventListener>();
     }
 
-    _listeners[eventName][priority].add(listener);
-    _sorted.remove(eventName);
+    _listeners[eventType][priority].add(listener);
+    _sorted.remove(eventType);
   }
 
-  void removeListener(String eventName, EventListener listener) {
-    if (!_listeners.containsKey(eventName)) {
+  void removeListener(Type eventType, EventListener listener) {
+    if (!_listeners.containsKey(eventType)) {
       return;
     }
 
     var removed = false;
 
-    _listeners[eventName].forEach((_, List<EventListener> listeners) {
+    _listeners[eventType].forEach((_, List<EventListener> listeners) {
       listeners.removeWhere((e) {
         if (identical(e, listener)) {
           removed = true;
@@ -106,55 +100,54 @@ class EventDispatcherImpl implements EventDispatcher {
     });
 
     if (removed) {
-      _sorted.remove(eventName);
+      _sorted.remove(eventType);
     }
   }
 
-  bool hasListeners(String eventName) {
-    if (!_listeners.containsKey(eventName)) {
+  bool hasListeners(Type eventType) {
+    if (!_listeners.containsKey(eventType)) {
       return false;
     }
 
     var result = false;
-    _listeners[eventName].forEach((_, List<EventListener> listeners) {
+    _listeners[eventType].forEach((_, List<EventListener> listeners) {
       if (listeners.isNotEmpty) result = true;
     });
 
     return result;
   }
 
-  List<EventListener> getListeners(String eventName) {
-    if (!_sorted.containsKey(eventName)) {
-      _sortListeners(eventName);
+  List<EventListener> getListeners(Type eventType) {
+    if (!_sorted.containsKey(eventType)) {
+      _sortListeners(eventType);
     }
 
-    return _sorted.containsKey(eventName) ? _sorted[eventName] : const <EventListener>[];
+    return _sorted.containsKey(eventType) ? _sorted[eventType] : const <EventListener>[];
   }
 
-  void _sortListeners(String eventName) {
-    if (!_listeners.containsKey(eventName)) {
+  void _sortListeners(Type eventType) {
+    if (!_listeners.containsKey(eventType)) {
       return;
     }
 
-    _sorted[eventName] = new List<EventListener>();
+    _sorted[eventType] = new List<EventListener>();
 
-    _listeners[eventName].forEach((_, List<EventListener> listeners) {
-      _sorted[eventName].addAll(listeners);
+    _listeners[eventType].forEach((_, List<EventListener> listeners) {
+      _sorted[eventType].addAll(listeners);
     });
   }
 }
 
 /// Method which acts as listener must to implement this signature.
-typedef Future EventListener<E extends Event>(String eventName, E event);
+typedef Future EventListener<E extends Event>(E event);
 
 /// Event is the base class for classes containing event data.
 ///
-/// This class contains no event data. It is used by events that do not pass
-/// state information to an event handler when an event is raised.
+/// Extend this class to create some type of event.
 ///
 /// You can call the method [stopPropagation] to abort the execution of
 /// further listeners in your event listener.
-class Event {
+abstract class Event {
   bool _propagationStopped = false;
 
   /// Whether no further event listeners should be triggered.

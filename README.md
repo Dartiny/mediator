@@ -15,11 +15,11 @@ import 'package:mediator/mediator.dart';
 main() async {
   var dispatcher = new EventDispatcher();
   
-  dispatcher.addListener('event-name', (String eventName, Event event) async {
+  dispatcher.addListener(SomeEvent, (String eventName, Event event) async {
   	// ...
   });
   
-  var event = await dispatcher.dispatch('event-name');
+  var event = await dispatcher.dispatch(new SomeEvent());
   
   if (event.isPropagationStopped) {
     // ...

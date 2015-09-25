@@ -8,8 +8,9 @@ import 'dart:async' show Future;
 import 'package:test/test.dart';
 import 'package:mediator/mediator.dart';
 
-const EVENT_A = 'event_a';
-const EVENT_B = 'event_b';
+class EventA extends Event {}
+class EventB extends Event {}
+class EventC extends Event {}
 
 class TestEventListener {
   bool shouldStopPropagation = false;
@@ -18,7 +19,7 @@ class TestEventListener {
 
   TestEventListener(this._calls);
 
-  Future call(String eventName, Event event) async {
+  Future call(Event event) async {
     callsAmount++;
     _calls.add(this);
 
@@ -53,110 +54,110 @@ void main() {
     });
 
     test('Initial state.', () {
-      expect(dispatcher.hasListeners(EVENT_A), isFalse);
-      expect(dispatcher.hasListeners(EVENT_B), isFalse);
+      expect(dispatcher.hasListeners(EventA), isFalse);
+      expect(dispatcher.hasListeners(EventB), isFalse);
 
-      expect(dispatcher.getListeners(EVENT_A), hasLength(0));
-      expect(dispatcher.getListeners(EVENT_B), hasLength(0));
+      expect(dispatcher.getListeners(EventA), hasLength(0));
+      expect(dispatcher.getListeners(EventB), hasLength(0));
     });
 
     test('.addListener()', () {
       dispatcher
-        ..addListener(EVENT_A, listenerA)
-        ..addListener(EVENT_B, listenerA)
-        ..addListener(EVENT_B, listenerB);
+        ..addListener(EventA, listenerA)
+        ..addListener(EventB, listenerA)
+        ..addListener(EventB, listenerB);
 
-      expect(dispatcher.hasListeners(EVENT_A), isTrue);
-      expect(dispatcher.hasListeners(EVENT_B), isTrue);
+      expect(dispatcher.hasListeners(EventA), isTrue);
+      expect(dispatcher.hasListeners(EventB), isTrue);
 
-      expect(dispatcher.getListeners(EVENT_A), hasLength(1));
-      expect(dispatcher.getListeners(EVENT_B), hasLength(2));
+      expect(dispatcher.getListeners(EventA), hasLength(1));
+      expect(dispatcher.getListeners(EventB), hasLength(2));
     });
 
     test('.getListeners() Sortes by priority.', () {
       dispatcher
-        ..addListener(EVENT_A, listenerA, priority: -10)
-        ..addListener(EVENT_A, listenerB, priority: 10)
-        ..addListener(EVENT_A, listenerC);
+        ..addListener(EventA, listenerA, priority: -10)
+        ..addListener(EventA, listenerB, priority: 10)
+        ..addListener(EventA, listenerC);
 
-      expect(dispatcher.getListeners(EVENT_A), equals([listenerB, listenerC, listenerA]));
+      expect(dispatcher.getListeners(EventA), equals([listenerB, listenerC, listenerA]));
     });
 
     test('.removeListener()', () {
-      dispatcher.addListener(EVENT_A, listenerA);
-      expect(dispatcher.hasListeners(EVENT_A), isTrue);
+      dispatcher.addListener(EventA, listenerA);
+      expect(dispatcher.hasListeners(EventA), isTrue);
 
-      dispatcher.removeListener(EVENT_A, listenerA);
-      expect(dispatcher.hasListeners(EVENT_A), isFalse);
+      dispatcher.removeListener(EventA, listenerA);
+      expect(dispatcher.hasListeners(EventA), isFalse);
 
-      dispatcher.removeListener('not-exists', listenerA);
+      dispatcher.removeListener(EventC, listenerA);
     });
 
     group('.dispatch', () {
       test('Common.', () async {
         dispatcher
-          ..addListener(EVENT_A, listenerA)
-          ..addListener(EVENT_B, listenerB);
+          ..addListener(EventA, listenerA)
+          ..addListener(EventB, listenerB);
 
-        await dispatcher.dispatch(EVENT_A);
+        var event = new EventA();
+        expect(await dispatcher.dispatch(event), same(event));
         expect(listenerA.callsAmount, 1);
         expect(listenerB.callsAmount, 0);
 
-        expect(await dispatcher.dispatch('no_event'), const isInstanceOf<Event>());
-        expect(await dispatcher.dispatch(EVENT_A), const isInstanceOf<Event>());
+        expect(await dispatcher.dispatch(new EventC()), const isInstanceOf<EventC>());
 
-        var event = new Event();
-        dispatcher.addListener(EVENT_B, (name, ev) async {
-          expect(name, EVENT_B);
+
+        event = new EventB();
+        dispatcher.addListener(EventB, (ev) async {
           expect(ev, same(event));
         });
-        expect(await dispatcher.dispatch(EVENT_B, event), same(event));
+        expect(await dispatcher.dispatch(event), same(event));
       });
 
       test('By priority.', () async {
         dispatcher
-          ..addListener(EVENT_A, listenerA, priority: -10)
-          ..addListener(EVENT_A, listenerB, priority: 10)
-          ..addListener(EVENT_A, listenerC);
+        ..addListener(EventA, listenerA, priority: -10)
+        ..addListener(EventA, listenerB, priority: 10)
+        ..addListener(EventA, listenerC);
 
-        await dispatcher.dispatch(EVENT_A);
+        await dispatcher.dispatch(new EventA());
         expect(calls, [listenerB, listenerC, listenerA]);
       });
 
       test('Stop event proppagation.', () async {
         dispatcher
-          ..addListener(EVENT_A, listenerA)
-          ..addListener(EVENT_A, listenerB..shouldStopPropagation = true)
-          ..addListener(EVENT_A, listenerC);
+          ..addListener(EventA, listenerA)
+          ..addListener(EventA, listenerB..shouldStopPropagation = true)
+          ..addListener(EventA, listenerC);
 
-        var returned = await dispatcher.dispatch(EVENT_A);
+        var event = await dispatcher.dispatch(new EventA());
         expect(calls, [listenerA, listenerB]);
-        expect(returned.isPropagationStopped, isTrue);
+        expect(event.isPropagationStopped, isTrue);
       });
 
       test('Leazy registration.', () async {
-        dispatcher.addListener(EVENT_A, (name, _) async {
-          dispatcher.addListener(name, listenerA);
+        dispatcher.addListener(EventA, (event) async {
+          dispatcher.addListener(event.runtimeType, listenerA);
         });
 
-        await dispatcher.dispatch(EVENT_A);
+        await dispatcher.dispatch(new EventA());
         expect(listenerA.callsAmount, 0);
 
-        await dispatcher.dispatch(EVENT_A);
+        await dispatcher.dispatch(new EventA());
         expect(listenerA.callsAmount, 1);
       });
 
       test('Removing of listener by listener', () async {
         dispatcher
-          ..addListener(EVENT_A, listenerA)
-          ..addListener(EVENT_A, (name, _) async {
-            dispatcher.removeListener(name, listenerA);
+          ..addListener(EventA, listenerA)
+          ..addListener(EventA, (event) async {
+            dispatcher.removeListener(event.runtimeType, listenerA);
           });
 
-        await dispatcher.dispatch(EVENT_A);
+        await dispatcher.dispatch(new EventA());
         expect(listenerA.callsAmount, 1);
 
-        await dispatcher.dispatch(EVENT_A);
+        await dispatcher.dispatch(new EventA());
         expect(listenerA.callsAmount, 1);
       });
     });

@@ -7,10 +7,12 @@ library mediator.test.core.event;
 import 'package:test/test.dart';
 import 'package:mediator/mediator.dart';
 
+class TestEvent extends Event {}
+
 void main() {
   group('Event', () {
     test('.stopPropagation()', () {
-      var event = new Event();
+      var event = new TestEvent();
       expect(event.isPropagationStopped, isFalse);
 
       event.stopPropagation();
