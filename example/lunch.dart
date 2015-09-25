@@ -9,13 +9,13 @@ main() async {
   final dispatcher = new EventDispatcher();
 
   // Register listener for 'new_order' event:
-  dispatcher.addListener('new_order', orderCostLimitListener);
+  dispatcher.addListener(OrderEvent, orderCostLimitListener);
 
   // Receive some order:
   var order = new Order('Roman', 'cleaning', 10000);
 
   // Dispatch event about new order:
-  var event = await dispatcher.dispatch('new_order', new OrderEvent(order));
+  var event = await dispatcher.dispatch(new OrderEvent(order));
   if (!event.isPropagationStopped) {
     // Complete order...
   }
@@ -35,7 +35,7 @@ class OrderEvent extends Event {
   OrderEvent(this.order);
 }
 
-Future orderCostLimitListener(String eventName, OrderEvent event) async {
+Future orderCostLimitListener(OrderEvent event) async {
   var order = event.order;
 
   if (order.cost > 100000) {
