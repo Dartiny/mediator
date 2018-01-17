@@ -1,6 +1,8 @@
 Mediator
 ========
 
+🚫 **(This project is no longer maintained.)**
+
 Component implements the Mediator pattern in a simple and effective way to make your projects extensible.
 
 _(Inspired by [Symfony Event Dispatcher][1])_
